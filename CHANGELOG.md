@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-20
+
 ### Added
 
 - Layouts: pick how the window looks in Settings, Appearance, or with View, Layout (Command-1 to Command-3).
@@ -43,6 +45,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Dock badge, finish sound and a warning before quitting mid-download.
 - Universal build (Apple Silicon and Intel) shipped as a .dmg.
 
-[Unreleased]: https://github.com/babbaranish/spotdl-gui/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/babbaranish/spotdl-gui/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/babbaranish/spotdl-gui/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/babbaranish/spotdl-gui/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/babbaranish/spotdl-gui/releases/tag/v1.0.0
