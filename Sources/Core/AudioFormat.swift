@@ -1,6 +1,6 @@
 import Foundation
 
-enum AudioFormat: String, CaseIterable, Identifiable {
+enum AudioFormat: String, CaseIterable, Identifiable, Codable {
     case mp3, m4a, flac
     var id: String { rawValue }
     var label: String { rawValue.uppercased() }

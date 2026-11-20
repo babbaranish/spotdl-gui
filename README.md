@@ -18,6 +18,12 @@ Or, in Terminal:
 xattr -dr com.apple.quarantine /Applications/spotDL.app
 ```
 
+Or install with Homebrew. The cask also clears the first-launch block, so step 3 is not needed:
+
+```bash
+brew install --cask babbaranish/tap/spotdl-gui
+```
+
 Optional: check the download against its checksum file (run it in the folder with both files):
 
 ```bash
@@ -35,6 +41,29 @@ shasum -a 256 -c spotDL-<version>.dmg.sha256
 - Copy a Spotify link, switch back to the app, and it is already filled in.
 - Playlists and albums get their own folder. Choose where files are saved (default `~/Music/spotDL`).
 - Dock badge with the number of active downloads, a sound when a job finishes, and a warning before quitting mid-download.
+- Checks that spotDL and ffmpeg are installed, and can update spotDL for you.
+- Playlist sync: keep a playlist or album folder up to date. New songs download, and you can choose to delete songs taken off the playlist. Open "Synced playlists" from the window.
+- Drag and drop Spotify links onto the window.
+- Album art in the job list.
+- Fix a wrong match: paste the right YouTube link for a song that downloaded the wrong track.
+- Add to Music: send finished songs to Apple Music, automatically or from a job's menu.
+- Saved queue and history: jobs stay in the list after you quit, so you can retry them.
+- A notification when a download finishes.
+- Checks for a newer spotdl-gui release and tells you when one is out.
+
+## Settings
+
+Open Settings with Command-comma.
+
+- **Format**: MP3 (320 kbps), M4A (original audio) or FLAC.
+- **Synced lyrics**: also save `.lrc` lyric files next to the songs.
+- **Audio source**: where spotDL gets the audio. YouTube Music is the default.
+- **Cookies file**: the path to a cookies file. Lets YouTube Music Premium accounts download 256 kbps audio.
+- **File name template**: the default is `{artists} - {title}.{output-ext}`. It must contain `{title}` and `{output-ext}`, and it cannot contain `/`. Reset puts the default back.
+- **Notify when done**: a notification when a download finishes.
+- **Add to Music automatically**: add finished songs to Apple Music.
+- **Sync playlists on launch**: sync all saved playlists when the app opens.
+- **Check for app updates**: look for a newer spotdl-gui release.
 
 ## Requirements
 
@@ -79,7 +108,7 @@ For each job it runs:
 spotdl download <link> --format <fmt> --output <template> --simple-tui
 ```
 
-and reads spotDL's output line by line to show progress. Nothing is sent anywhere except by spotDL itself.
+and reads spotDL's output line by line to show progress. spotDL does the downloading. The app also asks Spotify for album art and GitHub for the latest release number. You can turn off the update check in Settings.
 
 For testing, two environment variables are supported when launching the binary directly:
 

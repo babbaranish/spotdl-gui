@@ -14,6 +14,30 @@ struct SpotDLApp: App {
         .defaultSize(width: 760, height: 600)
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(after: .newItem) {
+                Button("Sync All Playlists") { dl.syncAll() }
+            }
+            CommandGroup(after: .appSettings) {
+                CheckSpotDLUpdateButton()
+            }
+        }
+
+        Settings {
+            SettingsView()
+                .environmentObject(dl)
+                .tint(.green)
+        }
+    }
+}
+
+/// Re-reads the spotDL version and opens Settings, where the version and the Update button are.
+private struct CheckSpotDLUpdateButton: View {
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        Button("Check for spotDL Update") {
+            ToolStatus.shared.refresh(spotdlPath: Downloader.shared.spotdlPath)
+            openSettings()
         }
     }
 }

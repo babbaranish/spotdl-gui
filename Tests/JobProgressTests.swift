@@ -188,3 +188,49 @@ struct JobProgressFinishTests {
         #expect(p.state == .done)
     }
 }
+
+struct JobProgressDeleteTests {
+    @Test func deletingLinesAreCountedAndAddNoSongs() {
+        let p = parsed(playlist, ["Deleting /Music/Mix/A - Old.mp3", "Deleting /Music/Mix/B - Old.mp3"])
+        #expect(p.deletedCount == 2)
+        #expect(p.songs.isEmpty)
+        #expect(p.state == .waiting)
+    }
+
+    @Test func syncSummaryLinesChangeNothing() {
+        let p = parsed(playlist, ["Nothing to delete...", "3 old songs were deleted."])
+        #expect(p.deletedCount == 0)
+        #expect(p.songs.isEmpty)
+        #expect(p.state == .waiting)
+    }
+}
+
+struct JobProgressRestoredTests {
+    @Test func restoredIsFinishedAndKeepsItsDetails() {
+        var p = JobProgress.restored(
+            query: playlist, title: "Mix", state: .done,
+            songs: [SongRow(name: "A - One", state: .done)], listName: "Mix")
+        #expect(p.kind == .playlist)
+        #expect(p.title == "Mix")
+        #expect(p.state == .done)
+        #expect(p.finished)
+        #expect(p.listName == "Mix")
+        #expect(p.songs.map(\.state) == [.done])
+
+        p.ingest(Data("A - Two: Done\n".utf8))
+        #expect(p.songs.count == 1)
+    }
+
+    @Test func restoredKeepsTheDeletedCount() {
+        let p = JobProgress.restored(query: playlist, title: "Mix", state: .done, songs: [], listName: "Mix",
+                                     deletedCount: 3)
+        #expect(p.deletedCount == 3)
+        #expect(JobProgress.restored(query: playlist, title: "Mix", state: .done, songs: [], listName: nil).deletedCount == 0)
+    }
+
+    @Test func finishingARestoredJobChangesNothing() {
+        var p = JobProgress.restored(query: playlist, title: "Mix", state: .failed("x"), songs: [], listName: nil)
+        p.finish(exitCode: 0, cancelled: true)
+        #expect(p.state == .failed("x"))
+    }
+}

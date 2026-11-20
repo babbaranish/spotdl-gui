@@ -1,15 +1,19 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
-/// Holds text-field state (the Command Line Tools SDK lacks the @State macro plugin).
+/// Holds text-field, drop and sheet state (the Command Line Tools SDK lacks the @State macro plugin).
 @MainActor
 final class InputModel: ObservableObject {
     @Published var input = ""
+    @Published var dropTargeted = false
+    @Published var showSyncList = false
     var lastPrefill = ""
 }
 
 struct ContentView: View {
     @EnvironmentObject var dl: Downloader
+    @ObservedObject private var settings = SettingsStore.shared
     @StateObject private var ui = InputModel()
     @FocusState private var inputFocused: Bool
 
@@ -21,6 +25,7 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             if dl.spotdlPath == nil { missingBanner }
+            StatusBanners()
             header
             Divider()
             if dl.jobs.isEmpty {
@@ -38,6 +43,30 @@ struct ContentView: View {
         }
         .frame(minWidth: 640, minHeight: 480)
         .background(Color(nsColor: .windowBackgroundColor))
+        .overlay {
+            if ui.dropTargeted {
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(Color.accentColor, lineWidth: 3)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(Color.accentColor.opacity(0.08)))
+                    .padding(4)
+                    .allowsHitTesting(false)
+            }
+        }
+        .onDrop(of: [.url, .plainText], isTargeted: $ui.dropTargeted, perform: handleDrop)
+        .sheet(isPresented: $ui.showSyncList) {
+            SyncListView(
+                currentOutputDir: dl.outputDir,
+                onSync: { playlist in
+                    dl.sync(playlist)
+                    ui.showSyncList = false
+                },
+                onSyncAll: {
+                    dl.syncAll()
+                    ui.showSyncList = false
+                },
+                onClose: { ui.showSyncList = false }
+            )
+        }
         .onAppear {
             inputFocused = true
             prefillFromClipboard()
@@ -78,13 +107,13 @@ struct ContentView: View {
                         .strokeBorder(inputFocused ? Color.accentColor.opacity(0.7) : Color(nsColor: .separatorColor), lineWidth: inputFocused ? 2 : 1)
                 )
 
-                Picker("Format", selection: $dl.format) {
+                Picker("Format", selection: $settings.options.format) {
                     ForEach(AudioFormat.allCases) { Text($0.label).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .frame(width: 160)
-                .help(dl.format.help)
+                .help(settings.options.format.help)
 
                 Button(action: submit) {
                     Label("Download", systemImage: "arrow.down.circle.fill")
@@ -95,7 +124,7 @@ struct ContentView: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || dl.spotdlPath == nil)
             }
-            Text(dl.format.help)
+            Text(settings.options.format.help)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.leading, 4)
@@ -134,6 +163,9 @@ struct ContentView: View {
             Button("Change…", action: chooseFolder)
                 .buttonStyle(.borderless)
             Spacer()
+            Button("Synced playlists") { ui.showSyncList = true }
+                .buttonStyle(.borderless)
+                .help("Playlists, albums and artists kept up to date")
             if dl.hasFinished {
                 Button("Clear finished") { withAnimation { dl.clearFinished() } }
                     .buttonStyle(.borderless)
@@ -164,6 +196,30 @@ struct ContentView: View {
         ui.lastPrefill = text
         input = ""
         inputFocused = true
+    }
+
+    /// Links dropped from a browser arrive as URLs; text dragged from elsewhere arrives as a string.
+    private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
+        guard dl.spotdlPath != nil else { return false }
+        let downloader = dl
+        var accepted = false
+        for provider in providers {
+            if provider.canLoadObject(ofClass: URL.self) {
+                accepted = true
+                _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                    guard let url, url.scheme == "http" || url.scheme == "https" else { return }
+                    let link = url.absoluteString
+                    Task { @MainActor in downloader.add(link) }
+                }
+            } else if provider.canLoadObject(ofClass: String.self) {
+                accepted = true
+                _ = provider.loadObject(ofClass: String.self) { text, _ in
+                    guard let text else { return }
+                    Task { @MainActor in downloader.add(text) }
+                }
+            }
+        }
+        return accepted
     }
 
     private func pasteFromClipboard() {

@@ -35,12 +35,13 @@ TEST_FLAGS      := -F $(TESTING_FW_DIR) -plugin-path $(TESTING_PLUGINS) \
                    -Xlinker -rpath -Xlinker $(TESTING_FW_DIR) \
                    $(if $(TESTING_LIB_DIR),-Xlinker -rpath -Xlinker $(TESTING_LIB_DIR))
 
-.PHONY: help test app dmg install release format clean
+.PHONY: help test app dmg cask install release format clean
 
 help:
 	@echo "make test      Run the unit tests"
 	@echo "make app       Build $(APP) (universal: $(ARCHS))"
 	@echo "make dmg       Build $(DMG) and its checksum"
+	@echo "make cask      Write $(DIST)/spotdl-gui.rb, the Homebrew cask for $(VERSION) (after make release)"
 	@echo "make install   Build and copy the app to /Applications"
 	@echo "make release   Test, build the DMG and publish GitHub release v$(VERSION) (needs gh)"
 	@echo "make format    Format sources with SwiftFormat"
@@ -85,6 +86,14 @@ $(APP): $(foreach a,$(ARCHS),$(BUILD)/bin/$(APP_NAME)-$(a)) $(BUILD)/icon/AppIco
 
 dmg: $(APP)
 	scripts/make-dmg.sh $(APP) $(DMG) "$(APP_NAME) $(VERSION)"
+
+# Uses the checksum of the DMG that make release built. It never rebuilds the DMG:
+# hdiutil output differs per run, so a new checksum would not match the released file.
+cask:
+	@test -f $(DMG).sha256 || { echo "$(DMG).sha256 not found. Run make release (or make dmg) first; the cask must use the released DMG's checksum."; exit 1; }
+	set -e; sha=$$(awk '{ print $$1 }' $(DMG).sha256); \
+	  sed -e 's/__VERSION__/$(VERSION)/' -e "s/__SHA256__/$$sha/" packaging/homebrew/spotdl-gui.rb.in > $(DIST)/spotdl-gui.rb
+	@echo "Wrote $(DIST)/spotdl-gui.rb"
 
 install: $(APP)
 	rm -rf /Applications/$(APP_NAME).app

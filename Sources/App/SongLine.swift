@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SongLine: View {
     let song: SongRow
+    /// Set for failed songs that can be fixed with a YouTube link.
+    var onFix: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 8) {
@@ -15,6 +17,11 @@ struct SongLine: View {
             } else if song.state == .skipped {
                 Text("Already downloaded").foregroundStyle(.secondary)
             } else if song.state == .failed {
+                if let onFix {
+                    Button("Fix", action: onFix)
+                        .buttonStyle(.borderless)
+                        .help("Download the right version from a YouTube link")
+                }
                 Text("Failed").foregroundStyle(.red)
             }
         }

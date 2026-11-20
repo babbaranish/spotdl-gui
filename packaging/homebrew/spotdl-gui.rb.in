@@ -1,0 +1,31 @@
+cask "spotdl-gui" do
+  version "__VERSION__"
+  sha256 "__SHA256__"
+
+  url "https://github.com/babbaranish/spotdl-gui/releases/download/v#{version}/spotDL-#{version}.dmg"
+  name "spotDL"
+  desc "Native macOS window for spotDL: paste a Spotify link and download the music"
+  homepage "https://github.com/babbaranish/spotdl-gui"
+
+  depends_on macos: ">= :sonoma"
+
+  app "spotDL.app"
+
+  # The app is ad-hoc signed, not notarized. Clear the quarantine flag so macOS opens it.
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/spotDL.app"]
+  end
+
+  zap trash: [
+    "~/Library/Application Support/spotdl-gui",
+    "~/Library/Preferences/local.spotdl.gui.plist",
+  ]
+
+  caveats <<~EOS
+    spotDL and ffmpeg are needed to download music. Install them with:
+
+      brew install ffmpeg uv
+      uv tool install spotdl --python 3.12
+  EOS
+end

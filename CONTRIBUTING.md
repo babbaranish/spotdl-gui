@@ -60,3 +60,15 @@ This downloads real music. Use a scratch folder and a short album or playlist, n
 `make release` stops if the tree is dirty, if there are unpushed commits, if the tag already exists or if `CHANGELOG.md` has no section for the version. Otherwise it runs the tests, builds the disk image and publishes the GitHub release with its checksum file.
 
 The app is ad-hoc signed, not notarized. Users see the first-launch step described in the README.
+
+### Homebrew cask
+
+The cask template is `packaging/homebrew/spotdl-gui.rb.in`. It lives in its own public repo, `babbaranish/homebrew-tap`.
+
+One time: create the public repo `babbaranish/homebrew-tap`.
+
+After each `make release`:
+
+1. Run `make cask` right after `make release`, in the same checkout, without `make clean` in between. It writes `dist/spotdl-gui.rb` with the new version and the released DMG's checksum. It does not rebuild the DMG (a rebuilt one would have a different checksum), so it stops if the checksum file in `dist/` is missing.
+2. Copy `dist/spotdl-gui.rb` to `Casks/spotdl-gui.rb` in the `homebrew-tap` repo.
+3. Commit and push the `homebrew-tap` repo.

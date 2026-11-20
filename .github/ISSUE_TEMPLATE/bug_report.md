@@ -12,7 +12,11 @@ labels: bug
 1.
 2.
 
+**Area**: download / playlist sync / settings / spotDL update / Add to Music / notifications / other
+
 **Link type**: song / album / playlist / artist / search
+
+**Installed via**: DMG / Homebrew / built from source
 
 **Versions**
 - spotdl-gui version:

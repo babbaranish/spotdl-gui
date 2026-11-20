@@ -3,12 +3,32 @@ import Foundation
 /// How the app invokes the spotdl command line tool.
 enum SpotDLCommand {
     /// Lists get their own folder; single songs go straight into the output folder.
-    static func outputTemplate(for kind: JobKind) -> String {
-        (kind.usesFolder ? "{list-name}/" : "") + "{artists} - {title}.{output-ext}"
+    static func outputTemplate(for kind: JobKind, fileName: String = DownloadOptions.defaultFileNameTemplate) -> String {
+        (kind.usesFolder ? "{list-name}/" : "") + fileName
     }
 
-    static func arguments(query: String, kind: JobKind, format: AudioFormat) -> [String] {
-        ["download", query] + format.args + ["--output", outputTemplate(for: kind), "--simple-tui"]
+    static func arguments(query: String, kind: JobKind, options: DownloadOptions) -> [String] {
+        ["download", query] + options.format.args
+            + ["--output", outputTemplate(for: kind, fileName: options.effectiveTemplate)]
+            + options.extraArguments + ["--simple-tui"]
+    }
+
+    /// The first run saves the playlist to its .spotdl file; later runs re-sync from that file.
+    /// Format and file name come from the playlist; `options` only adds its extra flags.
+    static func syncArguments(playlist: SyncedPlaylist, saveFileExists: Bool, options: DownloadOptions) -> [String] {
+        let template = DownloadOptions.isValidTemplate(playlist.fileNameTemplate)
+            ? playlist.fileNameTemplate : DownloadOptions.defaultFileNameTemplate
+        let removal = playlist.deleteRemoved
+            ? (options.syncedLyrics ? ["--sync-remove-lrc"] : [])
+            : ["--sync-without-deleting"]
+        return (saveFileExists
+            ? ["sync", playlist.saveFilePath]
+            : ["sync", playlist.url, "--save-file", playlist.saveFilePath])
+            + playlist.format.args
+            + ["--output", outputTemplate(for: .playlist, fileName: template)]
+            + options.extraArguments
+            + removal
+            + ["--simple-tui"]
     }
 
     /// Apps launched from Finder get a minimal PATH, and spotDL needs ffmpeg on it.

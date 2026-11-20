@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: spotDL download engine bugs
+    url: https://github.com/spotDL/spotify-downloader/issues
+    about: Problems with spotDL itself, such as matching, rate limits or the spotdl command. Report them to the spotDL project.

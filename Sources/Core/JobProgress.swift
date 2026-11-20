@@ -15,6 +15,7 @@ struct JobProgress: Equatable {
     var rateLimited = false
     var crashed = false
     var listName: String?
+    var deletedCount = 0
     private(set) var finished = false
 
     private var buffer = Data()
@@ -47,6 +48,19 @@ struct JobProgress: Equatable {
         "Searching for song", "Getting audio meta", "Downloading", "Converting",
         "Embedding metadata", "Done", "Skipped", "Error",
     ]
+
+    /// A finished progress rebuilt from history. `finished` is true, so ingest/finish are no-ops.
+    static func restored(query: String, title: String, state: JobState, songs: [SongRow], listName: String?,
+                         deletedCount: Int = 0) -> JobProgress {
+        var p = JobProgress(query: query)
+        p.title = title
+        p.state = state
+        p.songs = songs
+        p.listName = listName
+        p.deletedCount = deletedCount
+        p.finished = true
+        return p
+    }
 
     /// Feeds raw process output; complete lines (ending in \n or \r) are handled right away.
     mutating func ingest(_ data: Data) {
@@ -104,6 +118,12 @@ struct JobProgress: Equatable {
             if let s = message.firstMatch(of: /No results found for song: (.+)$/) {
                 setSong(String(s.1), .failed)
             }
+            return
+        }
+
+        // "Deleting <path>" comes from a sync that removed a song taken off the playlist.
+        if line.hasPrefix("Deleting ") {
+            deletedCount += 1
             return
         }
 
