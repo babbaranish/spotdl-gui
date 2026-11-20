@@ -24,6 +24,9 @@ final class SettingsStore: ObservableObject {
     @Published var syncOnLaunch: Bool {
         didSet { defaults.set(syncOnLaunch, forKey: "syncOnLaunch") }
     }
+    @Published var layout: AppLayout {
+        didSet { defaults.set(layout.rawValue, forKey: "layout") }
+    }
 
     private let defaults: UserDefaults
 
@@ -34,6 +37,7 @@ final class SettingsStore: ObservableObject {
         addToMusicAutomatically = defaults.object(forKey: "addToMusicAutomatically") as? Bool ?? false
         checkForAppUpdates = defaults.object(forKey: "checkForAppUpdates") as? Bool ?? true
         syncOnLaunch = defaults.object(forKey: "syncOnLaunch") as? Bool ?? false
+        layout = AppLayout(stored: defaults.string(forKey: "layout"))
     }
 
     /// Stored options, or the defaults with the old "format" key applied when nothing (or bad JSON) is stored.

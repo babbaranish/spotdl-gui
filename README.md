@@ -4,7 +4,7 @@ A small native macOS app for [spotDL](https://github.com/spotDL/spotify-download
 
 > Unofficial. Not affiliated with spotDL or Spotify.
 
-![spotdl-gui screenshot](docs/screenshot.png)
+![spotdl-gui, sidebar layout](docs/screenshot.png)
 
 ## Download
 
@@ -21,8 +21,13 @@ xattr -dr com.apple.quarantine /Applications/spotDL.app
 Or install with Homebrew. The cask also clears the first-launch block, so step 3 is not needed:
 
 ```bash
+brew trust --cask babbaranish/tap/spotdl-gui
 brew install --cask babbaranish/tap/spotdl-gui
 ```
+
+Homebrew 7 and later only load casks from other people's taps after you trust them, so run the `brew trust` line once first. To update later, run `brew upgrade --cask spotdl-gui`.
+
+If you already installed spotDL from the disk image, add `--force` to the install so Homebrew replaces that copy. Your settings are kept.
 
 Optional: check the download against its checksum file (run it in the folder with both files):
 
@@ -51,10 +56,25 @@ shasum -a 256 -c spotDL-<version>.dmg.sha256
 - A notification when a download finishes.
 - Checks for a newer spotdl-gui release and tells you when one is out.
 
+## Layouts
+
+Pick one in Settings, Appearance, or from the View menu (Command-1 to Command-3).
+
+**Sidebar** (default): the queue, finished jobs, jobs that need attention and your synced playlists each get their own page. The screenshot at the top shows it.
+
+**Now downloading**: the current download as a big card with its songs, and everything else listed below.
+
+![Now downloading layout](docs/screenshot-now-downloading.png)
+
+**Classic**: the original single list of job cards.
+
+![Classic layout](docs/screenshot-classic.png)
+
 ## Settings
 
 Open Settings with Command-comma.
 
+- **Layout**: Sidebar (default), Now downloading or Classic. Also in the View menu, Command-1 to Command-3.
 - **Format**: MP3 (320 kbps), M4A (original audio) or FLAC.
 - **Synced lyrics**: also save `.lrc` lyric files next to the songs.
 - **Audio source**: where spotDL gets the audio. YouTube Music is the default.

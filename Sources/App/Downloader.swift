@@ -11,7 +11,12 @@ final class Downloader: ObservableObject {
     }
 
     let spotdlPath: String?
+    /// SPOTDL_GUI_SNAPSHOT renders the layouts with sample jobs: nothing may run or be saved.
+    static let isSnapshot = ProcessInfo.processInfo.environment["SPOTDL_GUI_SNAPSHOT"] != nil
     private let outputOverridden: Bool
+    /// Re-publishes a job's state changes, so layouts that group jobs by state update.
+    private var jobsWatcher: AnyCancellable?
+    private var stateWatchers: [AnyCancellable] = []
     private var askedForNotifications = false
 
     init() {
@@ -35,7 +40,9 @@ final class Downloader: ObservableObject {
 
         // History is saved newest first, the same order as `jobs`.
         jobs = HistoryStore.load().map { Job(record: $0) }
+        jobsWatcher = $jobs.sink { [weak self] jobs in self?.watchStates(of: jobs) }
 
+        guard !Self.isSnapshot else { return }
         ToolStatus.shared.refresh(spotdlPath: spotdlPath)
         AppUpdateChecker.shared.checkIfDue()
 
@@ -98,7 +105,18 @@ final class Downloader: ObservableObject {
     }
 
     func saveHistory() {
+        guard !Self.isSnapshot else { return }
         HistoryStore.save(jobs.map { $0.record })
+    }
+
+    private func watchStates(of jobs: [Job]) {
+        stateWatchers = jobs.map { job in
+            job.$run
+                .map { ($0.state, $0.failedCount) }
+                .removeDuplicates { $0 == $1 }
+                .dropFirst()
+                .sink { [weak self] _ in self?.objectWillChange.send() }
+        }
     }
 
     func cancel(_ job: Job) {
@@ -154,6 +172,7 @@ final class Downloader: ObservableObject {
 
     /// Runs one job at a time (oldest first) to stay under Spotify's rate limits.
     private func pump() {
+        guard !Self.isSnapshot else { return }
         updateBadge()
         guard !jobs.contains(where: { $0.process != nil }) else { return }
         guard let next = jobs.last(where: { $0.state == .waiting }) else { return }

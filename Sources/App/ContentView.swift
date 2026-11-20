@@ -11,7 +11,11 @@ final class InputModel: ObservableObject {
     var lastPrefill = ""
 }
 
+/// The main window. It owns the input, drop and sheet state and shows the chosen layout below the banners.
 struct ContentView: View {
+    /// Forces a layout. nil uses the saved layout.
+    var layoutOverride: AppLayout? = nil
+
     @EnvironmentObject var dl: Downloader
     @ObservedObject private var settings = SettingsStore.shared
     @StateObject private var ui = InputModel()
@@ -22,26 +26,25 @@ struct ContentView: View {
         nonmutating set { ui.input = newValue }
     }
 
+    private var layout: AppLayout { layoutOverride ?? settings.layout }
+
+    private var ctx: LayoutContext {
+        LayoutContext(
+            ui: ui,
+            focus: $inputFocused,
+            submit: submit,
+            paste: pasteFromClipboard,
+            showSyncList: { ui.showSyncList = true }
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if dl.spotdlPath == nil { missingBanner }
             StatusBanners()
-            header
-            Divider()
-            if dl.jobs.isEmpty {
-                emptyState
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 10) {
-                        ForEach(dl.jobs) { JobRow(job: $0) }
-                    }
-                    .padding(16)
-                }
-            }
-            Divider()
-            footer
+            layoutView
         }
-        .frame(minWidth: 640, minHeight: 480)
+        .frame(minWidth: layout == .sidebar ? 780 : 640, minHeight: 480)
         .background(Color(nsColor: .windowBackgroundColor))
         .overlay {
             if ui.dropTargeted {
@@ -76,104 +79,12 @@ struct ContentView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                HStack(spacing: 8) {
-                    Image(systemName: "link")
-                        .foregroundStyle(.secondary)
-                    TextField("Paste a Spotify link, or type a song name", text: $ui.input)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 15))
-                        .focused($inputFocused)
-                        .onSubmit(submit)
-                    if input.isEmpty {
-                        Button("Paste") { pasteFromClipboard() }
-                            .buttonStyle(.borderless)
-                            .help("Paste from clipboard")
-                    } else {
-                        Button { input = "" } label: {
-                            Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Clear")
-                    }
-                }
-                .padding(.horizontal, 12)
-                .frame(height: 38)
-                .background(RoundedRectangle(cornerRadius: 9).fill(Color(nsColor: .textBackgroundColor)))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 9)
-                        .strokeBorder(inputFocused ? Color.accentColor.opacity(0.7) : Color(nsColor: .separatorColor), lineWidth: inputFocused ? 2 : 1)
-                )
-
-                Picker("Format", selection: $settings.options.format) {
-                    ForEach(AudioFormat.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .frame(width: 160)
-                .help(settings.options.format.help)
-
-                Button(action: submit) {
-                    Label("Download", systemImage: "arrow.down.circle.fill")
-                        .padding(.horizontal, 4)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .keyboardShortcut(.defaultAction)
-                .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || dl.spotdlPath == nil)
-            }
-            Text(settings.options.format.help)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.leading, 4)
+    @ViewBuilder private var layoutView: some View {
+        switch layout {
+        case .sidebar: SidebarLayout(ctx: ctx)
+        case .nowDownloading: NowDownloadingLayout(ctx: ctx)
+        case .classic: ClassicLayout(ctx: ctx)
         }
-        .padding(16)
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "music.note.list")
-                .font(.system(size: 44, weight: .light))
-                .foregroundStyle(.tertiary)
-            Text("Paste a Spotify link to start")
-                .font(.title3.weight(.semibold))
-            Text("Songs, albums, playlists and artists all work. Add more links while others download; they wait in line.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: 380)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(24)
-    }
-
-    private var footer: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "folder").foregroundStyle(.secondary)
-            Text("Saving to").foregroundStyle(.secondary)
-            Button {
-                try? FileManager.default.createDirectory(at: dl.outputDir, withIntermediateDirectories: true)
-                NSWorkspace.shared.open(dl.outputDir)
-            } label: {
-                Text(displayPath(dl.outputDir)).lineLimit(1).truncationMode(.middle)
-            }
-            .buttonStyle(.link)
-            .help("Open folder")
-            Button("Change…", action: chooseFolder)
-                .buttonStyle(.borderless)
-            Spacer()
-            Button("Synced playlists") { ui.showSyncList = true }
-                .buttonStyle(.borderless)
-                .help("Playlists, albums and artists kept up to date")
-            if dl.hasFinished {
-                Button("Clear finished") { withAnimation { dl.clearFinished() } }
-                    .buttonStyle(.borderless)
-            }
-        }
-        .font(.callout)
-        .padding(.horizontal, 16)
-        .frame(height: 38)
     }
 
     private var missingBanner: some View {
@@ -239,20 +150,5 @@ struct ContentView: View {
         else { return }
         input = s
         ui.lastPrefill = s
-    }
-
-    private func chooseFolder() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.canCreateDirectories = true
-        panel.prompt = "Save Here"
-        panel.directoryURL = dl.outputDir
-        if panel.runModal() == .OK, let url = panel.url { dl.outputDir = url }
-    }
-
-    private func displayPath(_ url: URL) -> String {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return url.path.hasPrefix(home) ? "~" + url.path.dropFirst(home.count) : url.path
     }
 }

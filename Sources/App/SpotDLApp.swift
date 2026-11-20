@@ -20,6 +20,9 @@ struct SpotDLApp: App {
             CommandGroup(after: .appSettings) {
                 CheckSpotDLUpdateButton()
             }
+            CommandGroup(before: .toolbar) {
+                LayoutMenu()
+            }
         }
 
         Settings {
@@ -39,5 +42,26 @@ private struct CheckSpotDLUpdateButton: View {
             ToolStatus.shared.refresh(spotdlPath: Downloader.shared.spotdlPath)
             openSettings()
         }
+    }
+}
+
+/// View menu items that switch the main window layout (Cmd+1 to Cmd+3).
+private struct LayoutMenu: View {
+    @ObservedObject private var settings = SettingsStore.shared
+
+    var body: some View {
+        ForEach(Array(AppLayout.allCases.enumerated()), id: \.element.id) { index, layout in
+            Button {
+                settings.layout = layout
+            } label: {
+                if settings.layout == layout {
+                    Label(layout.label, systemImage: "checkmark")
+                } else {
+                    Text(layout.label)
+                }
+            }
+            .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
+        }
+        Divider()
     }
 }

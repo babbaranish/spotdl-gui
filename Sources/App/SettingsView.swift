@@ -9,6 +9,15 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("Appearance") {
+                Picker("Layout", selection: $settings.layout) {
+                    ForEach(AppLayout.allCases) { Text($0.label).tag($0) }
+                }
+                Text(settings.layout.summary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Downloads") {
                 Picker("Format", selection: $settings.options.format) {
                     ForEach(AudioFormat.allCases) { Text($0.label).tag($0) }

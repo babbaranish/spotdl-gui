@@ -5,6 +5,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- Layouts: pick how the window looks in Settings, Appearance, or with View, Layout (Command-1 to Command-3).
+  - Sidebar (the new default): a sidebar for the queue, finished jobs, jobs that need attention and synced playlists.
+  - Now downloading: a big card for the current download with its songs, and the rest listed below.
+  - Classic: the original single list.
+
 ## [1.1.0] - 2026-11-20
 
 ### Added

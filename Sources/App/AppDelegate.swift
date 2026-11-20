@@ -5,6 +5,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { true }
 
+    @MainActor
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        DebugSnapshot.runIfRequested()
+    }
+
     /// Links dropped on the Dock icon or opened with the app.
     @MainActor
     func application(_ application: NSApplication, open urls: [URL]) {
