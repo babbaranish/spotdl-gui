@@ -1,0 +1,6 @@
+--swiftversion 5.10
+--indent 4
+--maxwidth 160
+--wraparguments before-first
+--wrapcollections before-first
+--exclude build,dist
